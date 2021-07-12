@@ -1,5 +1,4 @@
 import sys
-import os
 import pygame
 from pygame.sprite import Sprite
 from pygame.sprite import Group
@@ -140,18 +139,6 @@ class Settings:
         self.bullet_speed_factor *= self.speedup_scale
         self.alien_speed_factor *= self.speedup_scale
         self.alien_points = int(self.alien_points * self.score_scale)
-        #score_database(self.alien_points, self.high_score)
-        
-#def score_database(alien_score, high_score):
-#    with open('highest_score.txt', 'w') as score:
-#        if alien_score > high_score:
-#            score.write(str(alien_score))
-#            print(alien_score)
-
-#def highscore():
-#    high_score = 0
-#    return high_score
-
 
 class Gamestats:
     '''Track statistics for Alien Invasion'''
@@ -160,6 +147,7 @@ class Gamestats:
         self.reset_stats()
         self.game_active = False
         self.high_score = 0
+        self.high_score_storage = "highscore.txt"
     def reset_stats(self):
         self.ships_left = self.ai_settings.ship_limit
         self.score = 0
@@ -190,23 +178,11 @@ class Scoreboard:
         self.screen.blit(self.level_image, self.level_rect)
         self.ships.draw(self.screen)
     def prep_high_score(self):
-        #high_score = 0
-       # try:    
-    
-       #     with open('high_score.txt', 'r') as high_score:
-       #         high_score = int(high_score.read())
-                #print(high_score)
-                
-      #  except FileNotFoundError:
-       #     with open('high_score.txt', 'w') as high_score:
-        #        high_score.write(str(check_high_score(self.stats, self)))
-
-        self.high_score_image = self.font.render('{:,}'.format(self.stats.high_score), True, self.text_color, self.ai_settings.bg_color)
+        self.high_score_image = self.font.render('{:,}'.format(get_highscore(self.stats)), True, self.text_color, self.ai_settings.bg_color)
         self.high_score_rect = self.high_score_image.get_rect()
         self.high_score_rect.centerx = self.screen_rect.centerx
         self.high_score_rect.top = self.score_rect.top
         
-
     def prep_level(self):
         '''Turn the level into a rendered image'''
         self.level_image = self.font.render(str('Level: '+str(self.stats.level)), True, self.text_color, self.ai_settings.bg_color)
@@ -221,14 +197,20 @@ class Scoreboard:
             ship.rect.y = 10
             self.ships.add(ship)
 
-def check_high_score(stats, sb):
-    '''checks for the highest score'''
-    if stats.score > stats.high_score:
-        stats.high_score = stats.score
-        sb.prep_high_score()
-    return stats.high_score
 
-def check_keydown_events(event, ai_setting, screen, stats, play_button, ship, bullets):
+def highscore_database(stats):
+    if stats.score > get_highscore(stats):
+        with open(stats.high_score_storage, "w") as highscore:
+            highscore.write(str(stats.score))
+
+def get_highscore(stats):
+    try:
+        with open(stats.high_score_storage, "r") as highscore:
+            return int(highscore.readline())
+    except FileNotFoundError:
+        return 0
+
+def check_keydown_events(event, ai_setting, screen, stats, ship, bullets):
     '''Return key is pressed'''
     if event.key == pygame.K_RIGHT:
         ship.moving_right = True
@@ -255,10 +237,11 @@ def check_events(ai_setting, screen, stats, sb, play_button, ship, aliens, bulle
     '''keyboard and mouse events'''
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            highscore_database(stats)
             pygame.quit()
             sys.exit()
         if event.type == pygame.KEYDOWN:
-            check_keydown_events(event,ai_setting, screen,  stats, play_button, ship, bullets)
+            check_keydown_events(event,ai_setting, screen,  stats, ship, bullets)
         elif event.type == pygame.KEYUP:
             check_keyup_events(event, ship)
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -279,7 +262,7 @@ def check_play_button(ai_setting, screen, stats, sb, play_button, ship, aliens, 
         stats.game_active = False
         pygame.mouse.set_visible(True)
 
-def update_screen(ai_settings, screen, stats, sb, ship, aliens, bullets, play_button, game_over):
+def update_screen(ai_settings, screen, stats, sb, ship, aliens, bullets, play_button):
     for bullet in bullets.sprites():
         bullet.draw_bullet()
     ship.blitme()
@@ -352,7 +335,7 @@ def check_bullet_alien_collision(ai_settings, screen, stats, sb, ship, aliens, b
         for aliens in collisions.values():
             stats.score += ai_settings.alien_points
             sb.prep_score()
-        check_high_score(stats, sb)
+        #check_high_score(stats)
     if len(aliens) == 0:
         bullets.empty()
         ai_settings.increase_speed()
@@ -405,7 +388,7 @@ def run_game():
             update_bullets(ai_setting, screen, stats, sb, ship, aliens, bullets)
             bullets.update()
             update_aliens(ai_setting, stats, sb, screen, ship, aliens, bullets)
-        update_screen(ai_setting, screen, stats, sb, ship, aliens, bullets, play_button, game_over)
+        update_screen(ai_setting, screen, stats, sb, ship, aliens, bullets, play_button)
 
         for bullet in bullets.copy():
             if bullet.rect.bottom <= 0:
