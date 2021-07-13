@@ -121,7 +121,7 @@ class Settings:
         
         self.speedup_scale = 1.1
         self.pause_game = False
-        #self.high_score = highscore()
+
         #how quickly the alien killed point increase
         self.score_scale = 1.5
         self.initialize_dynamic_settings()
@@ -251,7 +251,6 @@ def check_events(ai_setting, screen, stats, sb, play_button, ship, aliens, bulle
 def check_play_button(ai_setting, screen, stats, sb, play_button, ship, aliens, bullets, mouse_x, mouse_y):
     button_clicked = play_button.rect.collidepoint(mouse_x, mouse_y)
     if button_clicked and not stats.game_active:
-        ai_setting.initialize_dynamic_settings()
         pygame.mouse.set_visible(False)
         stats.game_active = True
         sb.prep_score()
@@ -361,6 +360,7 @@ def ship_hit(ai_settings, stats, sb, screen, ship, aliens, bullets):
         create_fleet(ai_settings, screen, ship, aliens)
         ship.center_ship()
         sleep(0.5)
+    highscore_database(stats)
 
 def run_game():
     pygame.init()
